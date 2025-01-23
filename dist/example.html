@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HIV Death Analysis</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .chart-container {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        .chart {
+            margin: 20px;
+        }
+        .bar {
+            fill: steelblue;
+        }
+        .line {
+            fill: none;
+            stroke: steelblue;
+            stroke-width: 2px;
+        }
+        .axis text {
+            font-size: 12px;
+        }
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+    </style>
+</head>
+<body>
+<h1>HIV Death Analysis by Country</h1>
+<div id="chart-container" class="chart-container"></div>
+
+<script>
+    // Path to your CSV file
+    const csvPath = "/data/vih_no_of_deaths_by_country_clean.csv";
+
+    // Load CSV and parse data
+    d3.csv(csvPath, d => ({
+        Country: d.Country,
+        Year: +d.Year,
+        Count_median: +d.Count.match(/(\d+)\[/)[1], // Extract median
+        Count_min: +d.Count.match(/\[(\d+)–/)[1],   // Extract min
+        Count_max: +d.Count.match(/–(\d+)\]/)[1],   // Extract max
+        WHO_Region: d["WHO Region"]
+    })).then(data => {
+        console.log("Cleaned Data:", data);
+
+        // Create bar, line, and stacked chart divs
+        createBarChart(data);
+        createLineChart(data);
+        createStackedChart(data);
+    });
+
+    // Helper function for bar chart (Deaths by Country)
+    function createBarChart(data) {
+        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+        const width = 400 - margin.left - margin.right;
+        const height = 300 - margin.top - margin.bottom;
+
+        const svg = d3.select("#chart-container")
+            .append("div")
+            .attr("class", "chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const x = d3.scaleBand()
+            .domain(data.map(d => d.Country))
+            .range([0, width])
+            .padding(0.1);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.Count_median)])
+            .range([height, 0]);
+
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x));
+
+        svg.append("g")
+            .call(d3.axisLeft(y));
+
+        svg.selectAll(".bar")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", d => x(d.Country))
+            .attr("y", d => y(d.Count_median))
+            .attr("width", x.bandwidth())
+            .attr("height", d => height - y(d.Count_median));
+    }
+
+    // Helper function for line chart (Trend over years)
+    function createLineChart(data) {
+        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+        const width = 400 - margin.left - margin.right;
+        const height = 300 - margin.top - margin.bottom;
+
+        const svg = d3.select("#chart-container")
+            .append("div")
+            .attr("class", "chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const nestedData = d3.group(data, d => d.Country);
+
+        const x = d3.scaleLinear()
+            .domain(d3.extent(data, d => d.Year))
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.Count_median)])
+            .range([height, 0]);
+
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x).tickFormat(d3.format("d")));
+
+        svg.append("g").call(d3.axisLeft(y));
+
+        const line = d3.line()
+            .x(d => x(d.Year))
+            .y(d => y(d.Count_median));
+
+        nestedData.forEach((values, country) => {
+            svg.append("path")
+                .datum(values)
+                .attr("class", "line")
+                .attr("d", line);
+        });
+    }
+
+    // Helper function for stacked bar chart (Deaths by WHO Region)
+    function createStackedChart(data) {
+        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+        const width = 400 - margin.left - margin.right;
+        const height = 300 - margin.top - margin.bottom;
+
+        const svg = d3.select("#chart-container")
+            .append("div")
+            .attr("class", "chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const nestedData = d3.rollup(
+            data,
+            group => d3.sum(group, d => d.Count_median),
+            d => d["WHO_Region"]
+        );
+
+        const x = d3.scaleBand()
+            .domain([...nestedData.keys()])
+            .range([0, width])
+            .padding(0.1);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max([...nestedData.values()])])
+            .range([height, 0]);
+
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x));
+
+        svg.append("g").call(d3.axisLeft(y));
+
+        svg.selectAll(".bar")
+            .data([...nestedData.entries()])
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", d => x(d[0]))
+            .attr("y", d => y(d[1]))
+            .attr("width", x.bandwidth())
+            .attr("height", d => height - y(d[1]));
+    }
+</script>
+</body>
+</html>
