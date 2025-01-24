@@ -10,16 +10,11 @@ Ce projet est une initiative académique menée en groupe pour explorer et visua
 
 1. [Aperçu](#aperçu)
 2. [Structure du Projet](#structure-du-projet)
-3. [Visualisations](#visualisations)
-    - [Graphique à Barres : Personnes Vivant avec le VIH vs Recevant un Traitement](#graphique-à-barres-personnes-vivant-avec-le-vih-vs-recevant-un-traitement)
-    - [Graphique en Anneau : Couverture des Traitements ARV](#graphique-en-anneau-couverture-des-traitements-arv)
-    - [Carte de Chaleur : Répartition par Pays](#carte-de-chaleur-répartition-par-pays)
-    - [Carte Interactive : Localisation des Cas de VIH](#carte-interactive-localisation-des-cas-de-vih)
-4. [Traitement des Coordonnées Géographiques](#traitement-des-coordonnées-géographiques)
-5. [Technologies Utilisées](#technologies-utilisées)
-6. [Installation et Configuration](#installation-et-configuration)
-7. [Sources de Données](#sources-de-données)
-8. [Conclusion](#conclusion)
+3. [Traitement des Coordonnées Géographiques](#traitement-des-coordonnées-géographiques)
+4. [Technologies Utilisées](#technologies-utilisées)
+5. [Installation et Configuration](#installation-et-configuration)
+6. [Sources de Données](#sources-de-données)
+7. [Conclusion](#conclusion)
 
 ---
 
@@ -65,13 +60,14 @@ Cloner le dépôt :
 `
 
 ## Sources de Données
-Le projet utilise cinq fichiers CSV principaux :
 
-* people_living_with_hiv.csv : Nombre de personnes vivant avec le VIH.
-* deaths_due_to_hiv.csv : Nombre de décès dus au VIH/SIDA.
-* cases_among_adults.csv : Nombre de cas signalés chez les adultes (19-45 ans).
-* mother_to_child_transmission.csv : Estimations de la transmission mère-enfant.
-* art_coverage.csv : Couverture des traitements ARV parmi les personnes vivant avec le VIH
+Le projet utilise cinq fichiers CSV principaux récupérés via [Kaggle](https://www.kaggle.com/datasets/imdevskp/hiv-aids-dataset/data) :
+1. **people_living_with_hiv.csv** : Nombre de personnes vivant avec le VIH.
+2. **deaths_due_to_hiv.csv** : Nombre de décès dus au VIH/SIDA.
+3. **cases_among_adults.csv** : Nombre de cas signalés chez les adultes (19-45 ans).
+4. **mother_to_child_transmission.csv** : Estimations de la transmission mère-enfant.
+5. **art_coverage.csv** : Couverture des traitements ARV parmi les personnes vivant avec le VIH.
+
 
 ## Lien vers un autre site de visualization via github page et tableau :
 
