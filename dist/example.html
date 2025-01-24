@@ -1,110 +1,146 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Dual Bar Chart</title>
-    <script src="https://cdn.canvasjs.com/canvasjs.min.js"></script>
+    <title>AMCharts Map Visualization</title>
+    <!-- Styles -->
+    <style>
+        #chartdiv {
+            width: 100%;
+            height: 500px;
+        }
+    </style>
+    <!-- Resources -->
+    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/geodata/data/countries2.js"></script>
 </head>
 <body>
-<div style="text-align: center; margin-bottom: 20px;">
-    <h1>Upload CSV to Visualize Data</h1>
-    <input type="file" id="csvUpload" accept=".csv" style="margin-bottom: 20px;">
-</div>
+<!-- HTML -->
+<div id="chartdiv"></div>
 
-<!-- Chart Containers -->
-<div id="dualBarChart" style="height: 400px; width: 100%; margin-bottom: 20px;"></div>
-
+<!-- Chart code -->
 <script>
-    document.getElementById("csvUpload").addEventListener("change", handleFile);
+    am5.ready(function() {
 
-    function handleFile(event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                const csvData = e.target.result;
-                const parsedData = parseCSV(csvData);
+        // Create root element
+        var root = am5.Root.new("chartdiv");
 
-                // Extract necessary columns for dual bar chart
-                const countryData = parsedData.map(row => row["Country"]);
-                const livingWithHIV = parsedData.map(row => ({
-                    label: row["Country"],
-                    y: parseFloat(row["Estimated number of people living with HIV"] || 0)
-                }));
-                const receivingART = parsedData.map(row => ({
-                    label: row["Country"],
-                    y: parseFloat(row["Reported number of people receiving ART"] || 0)
-                }));
+        // Set themes
+        root.setThemes([
+            am5themes_Animated.new(root)
+        ]);
 
-                // Render the dual bar chart
-                renderDualBarChart(countryData, livingWithHIV, receivingART);
-            };
-            reader.readAsText(file);
-        }
-    }
+        // Create the map chart
+        var chart = root.container.children.push(am5map.MapChart.new(root, {
+            panX: "rotateX",
+            projection: am5map.geoMercator(),
+            layout: root.horizontalLayout
+        }));
 
-    function parseCSV(csv) {
-        const lines = csv.trim().split("\n");
-        const headers = lines[0].split("\t"); // Tab-delimited columns
-        return lines.slice(1).map(line => {
-            const values = line.split("\t");
-            return headers.reduce((acc, header, index) => {
-                acc[header] = values[index] || "";
-                return acc;
-            }, {});
+        am5.net.load("https://www.amcharts.com/tools/country/?v=xz6Z", chart).then(function (result) {
+            var geo = am5.JSONParser.parse(result.response);
+            loadGeodata(geo.country_code);
         });
-    }
 
-    function renderDualBarChart(countryData, livingWithHIV, receivingART) {
-        const chart = new CanvasJS.Chart("dualBarChart", {
-            theme: "light2",
-            animationEnabled: true,
-            exportEnabled: true,
-            title: {
-                text: "Comparison of People Living with HIV and Receiving ART"
-            },
-            axisY: {
-                title: "Number of People",
-                includeZero: true
-            },
-            axisX: {
-                title: "Countries",
-                interval: 1
-            },
-            toolTip: {
-                shared: true
-            },
-            legend: {
-                cursor: "pointer",
-                itemclick: toggleDataSeries
-            },
-            data: [
-                {
-                    type: "column",
-                    name: "People Living with HIV",
-                    showInLegend: true,
-                    dataPoints: livingWithHIV
-                },
-                {
-                    type: "column",
-                    name: "People Receiving ART",
-                    showInLegend: true,
-                    dataPoints: receivingART
-                }
-            ]
+        // Create polygon series for continents
+        var polygonSeries = chart.series.push(am5map.MapPolygonSeries.new(root, {
+            calculateAggregates: true,
+            valueField: "value"
+        }));
+
+        polygonSeries.mapPolygons.template.setAll({
+            tooltipText: "{name}",
+            interactive: true
         });
-        chart.render();
 
-        function toggleDataSeries(e) {
-            if (typeof e.dataSeries.visible === "undefined" || e.dataSeries.visible) {
-                e.dataSeries.visible = false;
+        polygonSeries.mapPolygons.template.states.create("hover", {
+            fill: am5.color(0x677935)
+        });
+
+        polygonSeries.set("heatRules", [{
+            target: polygonSeries.mapPolygons.template,
+            dataField: "value",
+            min: am5.color(0x8ab7ff),
+            max: am5.color(0x25529a),
+            key: "fill"
+        }]);
+
+        polygonSeries.mapPolygons.template.events.on("pointerover", function(ev) {
+            heatLegend.showValue(ev.target.dataItem.get("value"));
+        });
+
+        function loadGeodata(country) {
+            var defaultMap = "usaLow";
+            if (country == "US") {
+                chart.set("projection", am5map.geoAlbersUsa());
             } else {
-                e.dataSeries.visible = true;
+                chart.set("projection", am5map.geoMercator());
             }
-            chart.render();
+
+            var currentMap = defaultMap;
+            var title = "";
+            if (am5geodata_data_countries2[country] !== undefined) {
+                currentMap = am5geodata_data_countries2[country]["maps"][0];
+                if (am5geodata_data_countries2[country]["country"]) {
+                    title = am5geodata_data_countries2[country]["country"];
+                }
+            }
+
+            am5.net.load("https://cdn.amcharts.com/lib/5/geodata/json/" + currentMap + ".json", chart).then(function (result) {
+                var geodata = am5.JSONParser.parse(result.response);
+                var data = [];
+                for (var i = 0; i < geodata.features.length; i++) {
+                    data.push({
+                        id: geodata.features[i].id,
+                        value: Math.round(Math.random() * 10000)
+                    });
+                }
+
+                polygonSeries.set("geoJSON", geodata);
+                polygonSeries.data.setAll(data);
+            });
+
+            chart.seriesContainer.children.push(am5.Label.new(root, {
+                x: 5,
+                y: 5,
+                text: title,
+                background: am5.RoundedRectangle.new(root, {
+                    fill: am5.color(0xffffff),
+                    fillOpacity: 0.2
+                })
+            }));
         }
-    }
+
+        var heatLegend = chart.children.push(
+            am5.HeatLegend.new(root, {
+                orientation: "vertical",
+                startColor: am5.color(0x8ab7ff),
+                endColor: am5.color(0x25529a),
+                startText: "Lowest",
+                endText: "Highest",
+                stepCount: 5
+            })
+        );
+
+        heatLegend.startLabel.setAll({
+            fontSize: 12,
+            fill: heatLegend.get("startColor")
+        });
+
+        heatLegend.endLabel.setAll({
+            fontSize: 12,
+            fill: heatLegend.get("endColor")
+        });
+
+        polygonSeries.events.on("datavalidated", function () {
+            heatLegend.set("startValue", polygonSeries.getPrivate("valueLow"));
+            heatLegend.set("endValue", polygonSeries.getPrivate("valueHigh"));
+        });
+
+    }); // end am5.ready()
 </script>
 </body>
 </html>
