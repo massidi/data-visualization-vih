@@ -17,6 +17,8 @@
         <!-- Core theme CSS (includes Bootstrap)-->
         <link href="css/styles.css" rel="stylesheet" />
         <script src="https://d3js.org/d3.v6.min.js"></script>
+        <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+
 
         <style>
 
@@ -96,33 +98,51 @@
             <div class="container px-5">
                 <div class="row gx-5 justify-content-center">
                     <div class="col-xl-8">
-                        <div class="h2 fs-1 text-white mb-4">Analyse des Personnes Vivant avec le VIH</div>
-                        <img src="assets/img/tnw-logo.svg" alt="..." style="height: 3rem" />
+                        <div class="h2 fs-1 text-white mb-4">Analyse Graphique des Femmes Enceintes Vivant avec le VIH et le Besoin en Médicaments Préventifs</div>
                     </div>
                 </div>
             </div>
         </aside>
         <!-- App features section-->
-        <section id="features">
+<!--        <section id="features">-->
 
-            <div class="flourish-embed flourish-chart" data-src="visualisation/21284381"><script src="https://public.flourish.studio/resources/embed.js"></script><noscript><img src="https://public.flourish.studio/visualisation/21284381/thumbnail" width="100%" alt="chart visualization" /></noscript></div>
-<!--            <div class="container px-5 my-5">-->
-<!--                &lt;!&ndash; Title &ndash;&gt;-->
-<!--                <div class="text-center mb-5">-->
-<!--                    <h1 class="display-4">Analyse des Personnes Vivant avec le VIH</h1>-->
-<!--                    <p class="lead text-muted">Visualisation des données des personnes vivant avec le VIH par pays, année et région.</p>-->
-<!--                </div>-->
+<!--&lt;!&ndash;            <div class="flourish-embed flourish-chart" data-src="visualisation/21284381"><script src="https://public.flourish.studio/resources/embed.js"></script><noscript><img src="https://public.flourish.studio/visualisation/21284381/thumbnail" width="100%" alt="chart visualization" /></noscript></div>&ndash;&gt;-->
+<!--            <div class="row gx-5">-->
+<!--                <div class="col-lg-6 mb-5 chart">-->
 
-<!--                &lt;!&ndash; Rows for Charts &ndash;&gt;-->
-<!--                <div class="row gx-5">-->
-<!--                    <div id="chart7" class="col-lg-4 mb-5 chart"></div>-->
-<!--                    <div id="chart8" class="col-lg-4 mb-5 chart"></div>-->
-<!--                    <div id="chart9" class="col-lg-4 mb-5 chart"></div>-->
+<!--                    <div class="flourish-embed flourish-hierarchy" data-src="visualisation/21284841"><script src="https://public.flourish.studio/resources/embed.js"></script><noscript><img src="https://public.flourish.studio/visualisation/21284841/thumbnail" width="100%" alt="hierarchy visualization" /></noscript></div>-->
 
 <!--                </div>-->
-<!--              -->
+
+
 <!--            </div>-->
+
+<!--        </section>-->
+        <section id="features">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="flourish-embed" data-src="story/2837613"><script src="https://public.flourish.studio/resources/embed.js"></script><noscript><img src="https://public.flourish.studio/story/2837613/thumbnail" width="100%" alt="visualization" /></noscript></div>
+
+                    </div>
+
+                </div>
+
+                <div class="row">
+<!--                    <div class="flourish-embed flourish-map" data-src="visualisation/21283812"><script src="https://public.flourish.studio/resources/embed.js"></script><noscript><img src="https://public.flourish.studio/visualisation/21283812/thumbnail" width="100%" alt="map visualization" /></noscript></div>-->
+                    <div id="chartContainer" style="height: 400px; width: 100%;"></div>
+
+                </div>
+                <div class="row">
+                    <!-- Add this in your HTML body to display the chart -->
+<!--                    <div id="chartContainer" style="height: 400px; width: 100%;"></div>-->
+
+                    <!-- Include the CanvasJS library -->
+
+                </div>
+            </div>
         </section>
+
         <!-- Basic features section-->
         <section class="bg-light">
             <div class="container px-5">
@@ -211,16 +231,16 @@
                 const topRegionsDeaths = getTopItemsDeaths(data, "Région_OMS", 5);
                 const yearlyTrendDeaths = getYearlyTrendDeaths(data);
                 const regionDistributionDeaths = getRegionDistributionDeaths(data);
-                const minMaxComparisonDeaths = getMinMaxComparisonDeaths(data);
-                const yearlyMaxDeaths = getYearlyMaxDeathsDeaths(data);
+                // const minMaxComparisonDeaths = getMinMaxComparisonDeaths(data);
+                // const yearlyMaxDeaths = getYearlyMaxDeathsDeaths(data);
 
                 // Create the charts
                 createBarChartDeaths(topCountriesDeaths, "#chart1", "Top 5 Pays les Plus Touchés");
                 createBarChartDeaths(topRegionsDeaths, "#chart2", "Top 5 Régions les Plus Touchées");
                 createLineChartDeaths(yearlyTrendDeaths, "#chart3", "Tendance des Décès par Année");
                 createPieChartDeaths(regionDistributionDeaths, "#chart4", "Répartition par Région (OMS)");
-                createBarChartDeaths(minMaxComparisonDeaths, "#chart5", "Comparaison Min/Max des Décès");
-                createLineChartDeaths(yearlyMaxDeaths, "#chart6", "Maximum des Décès par Année");
+                // createBarChartDeaths(minMaxComparisonDeaths, "#chart5", "Comparaison Min/Max des Décès");
+                // createLineChartDeaths(yearlyMaxDeaths, "#chart6", "Maximum des Décès par Année");
             });
 
             // Helper functions for data aggregation
@@ -241,14 +261,14 @@
                 return Array.from(aggregated, ([region, count]) => ({ region, count }));
             }
 
-            function getMinMaxComparisonDeaths(data) {
-                return data.map(d => ({ key: d.Pays, min: d.Décès_min, max: d.Décès_max }));
-            }
+            // function getMinMaxComparisonDeaths(data) {
+            //     return data.map(d => ({ key: d.Pays, min: d.Décès_min, max: d.Décès_max }));
+            // }
 
-            function getYearlyMaxDeathsDeaths(data) {
-                const aggregated = d3.rollup(data, v => d3.max(v, d => d.Décès_max), d => d.Année);
-                return Array.from(aggregated, ([year, max]) => ({ year, max })).sort((a, b) => a.year - b.year);
-            }
+            // function getYearlyMaxDeathsDeaths(data) {
+            //     const aggregated = d3.rollup(data, v => d3.max(v, d => d.Décès_max), d => d.Année);
+            //     return Array.from(aggregated, ([year, max]) => ({ year, max })).sort((a, b) => a.year - b.year);
+            // }
 
             // Chart Functions
             function createBarChartDeaths(data, selector, title) {
@@ -527,6 +547,66 @@
                     .attr("fill", "none");
             }
         </script>
+
+        <script>
+            // Path to your dataset
+            const csvPath3 = "./data/no_of_cases_adults_15_to_49_by_country_clean.csv";
+
+            // Load CSV and parse data
+            d3.csv(csvPath3, d => ({
+                Country: d.Country,
+                Year: +d.Year,
+                Count: +d.Count,
+                Count_median: +d.Count_median,
+                Count_min: +d.Count_min,
+                Count_max: +d.Count_max,
+                WHO_Region: d["WHO Region"]
+            })).then(data => {
+                // Aggregate the data to get the top countries with the highest median count
+                const aggregatedData = d3.rollup(
+                    data,
+                    v => d3.sum(v, d => d.Count_median), // Sum up median counts
+                    d => d.Country // Group by country
+                );
+
+                // Convert to an array and sort by median count in descending order
+                const sortedData = Array.from(aggregatedData, ([key, value]) => ({ Country: key, Count_median: value }))
+                    .sort((a, b) => b.Count_median - a.Count_median)
+                    .slice(0, 10); // Take the top 10 countries
+
+                // Prepare data for CanvasJS
+                const chartData = sortedData.map(d => ({
+                    label: d.Country,
+                    y: d.Count_median
+                }));
+
+                // Create a bar chart using CanvasJS
+                const chart = new CanvasJS.Chart("chartContainer", {
+                    animationEnabled: true,
+                    theme: "light2",
+                    title: {
+                        text: "Top 10 Countries with Highest Median Cases (Adults 15-49)"
+                    },
+                    axisX: {
+                        title: "Countries",
+                        labelAngle: -45
+                    },
+                    axisY: {
+                        title: "Median Count",
+                        includeZero: true
+                    },
+                    data: [{
+                        type: "column",
+                        dataPoints: chartData
+                    }]
+                });
+
+                chart.render();
+            });
+        </script>
+
+
+
 
 
     </body>

@@ -3,192 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HIV Death Analysis</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <title>Spirale de Mots</title>
     <style>
-        .chart-container {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: radial-gradient(circle, #1a2a6c, #b21f1f, #fdbb2d);
         }
-        .chart {
-            margin: 20px;
+        #overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            color: white;
+            font-family: Arial, sans-serif;
         }
-        .bar {
-            fill: steelblue;
+        textarea, button {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
         }
-        .line {
-            fill: none;
-            stroke: steelblue;
-            stroke-width: 2px;
+        textarea {
+            width: 300px;
+            height: 80px;
         }
-        .axis text {
-            font-size: 12px;
-        }
-        .axis path,
-        .axis line {
-            fill: none;
-            stroke: black;
-            shape-rendering: crispEdges;
+        button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-<h1>HIV Death Analysis by Country</h1>
-<div id="chart-container" class="chart-container"></div>
-
+<div id="overlay">
+    <textarea id="textInput" placeholder="Entrez votre texte ici"></textarea>
+    <button onclick="createSpiral()">Créer Spirale</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    // Path to your CSV file
-    const csvPath = "/data/vih_no_of_deaths_by_country_clean.csv";
+    let scene, camera, renderer, group;
 
-    // Load CSV and parse data
-    d3.csv(csvPath, d => ({
-        Country: d.Country,
-        Year: +d.Year,
-        Count_median: +d.Count.match(/(\d+)\[/)[1], // Extract median
-        Count_min: +d.Count.match(/\[(\d+)–/)[1],   // Extract min
-        Count_max: +d.Count.match(/–(\d+)\]/)[1],   // Extract max
-        WHO_Region: d["WHO Region"]
-    })).then(data => {
-        console.log("Cleaned Data:", data);
+    // Initialisation de la scène
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 40;
 
-        // Create bar, line, and stacked chart divs
-        createBarChart(data);
-        createLineChart(data);
-        createStackedChart(data);
-    });
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    // Helper function for bar chart (Deaths by Country)
-    function createBarChart(data) {
-        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-        const width = 400 - margin.left - margin.right;
-        const height = 300 - margin.top - margin.bottom;
+        // Ajouter une lumière
+        const light = new THREE.PointLight(0xffffff, 1, 500);
+        light.position.set(10, 10, 25);
+        scene.add(light);
 
-        const svg = d3.select("#chart-container")
-            .append("div")
-            .attr("class", "chart")
-            .append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-            .append("g")
-            .attr("transform", `translate(${margin.left},${margin.top})`);
+        group = new THREE.Group();
+        scene.add(group);
 
-        const x = d3.scaleBand()
-            .domain(data.map(d => d.Country))
-            .range([0, width])
-            .padding(0.1);
-
-        const y = d3.scaleLinear()
-            .domain([0, d3.max(data, d => d.Count_median)])
-            .range([height, 0]);
-
-        svg.append("g")
-            .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x));
-
-        svg.append("g")
-            .call(d3.axisLeft(y));
-
-        svg.selectAll(".bar")
-            .data(data)
-            .enter()
-            .append("rect")
-            .attr("class", "bar")
-            .attr("x", d => x(d.Country))
-            .attr("y", d => y(d.Count_median))
-            .attr("width", x.bandwidth())
-            .attr("height", d => height - y(d.Count_median));
+        animate();
     }
 
-    // Helper function for line chart (Trend over years)
-    function createLineChart(data) {
-        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-        const width = 400 - margin.left - margin.right;
-        const height = 300 - margin.top - margin.bottom;
+    // Fonction pour créer une spirale à partir du texte
+    function createSpiral() {
+        const inputText = document.getElementById("textInput").value.trim();
+        if (!inputText) {
+            alert("Veuillez entrer du texte.");
+            return;
+        }
 
-        const svg = d3.select("#chart-container")
-            .append("div")
-            .attr("class", "chart")
-            .append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-            .append("g")
-            .attr("transform", `translate(${margin.left},${margin.top})`);
+        const words = inputText.split(/\s+/);
+        const spiralRadius = 10; // Rayon de la spirale
+        const wordHeight = 1.5; // Distance verticale entre les mots
+        const totalTurns = 3; // Nombre de tours de la spirale
 
-        const nestedData = d3.group(data, d => d.Country);
+        // Nettoyer la scène avant d'ajouter de nouveaux mots
+        while (group.children.length > 0) {
+            group.remove(group.children[0]);
+        }
 
-        const x = d3.scaleLinear()
-            .domain(d3.extent(data, d => d.Year))
-            .range([0, width]);
+        // Ajouter les mots sur une spirale
+        words.forEach((word, index) => {
+            const angle = (index / words.length) * Math.PI * 2 * totalTurns; // Calcul de l'angle
+            const x = spiralRadius * Math.cos(angle);
+            const z = spiralRadius * Math.sin(angle);
+            const y = index * wordHeight - (words.length / 2) * wordHeight;
 
-        const y = d3.scaleLinear()
-            .domain([0, d3.max(data, d => d.Count_median)])
-            .range([height, 0]);
-
-        svg.append("g")
-            .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x).tickFormat(d3.format("d")));
-
-        svg.append("g").call(d3.axisLeft(y));
-
-        const line = d3.line()
-            .x(d => x(d.Year))
-            .y(d => y(d.Count_median));
-
-        nestedData.forEach((values, country) => {
-            svg.append("path")
-                .datum(values)
-                .attr("class", "line")
-                .attr("d", line);
+            const wordMesh = createWord(word);
+            wordMesh.position.set(x, y, z);
+            wordMesh.rotation.y = -angle; // Orientation des mots
+            group.add(wordMesh);
         });
     }
 
-    // Helper function for stacked bar chart (Deaths by WHO Region)
-    function createStackedChart(data) {
-        const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-        const width = 400 - margin.left - margin.right;
-        const height = 300 - margin.top - margin.bottom;
+    // Fonction pour créer un mot en 3D
+    function createWord(word) {
+        const geometry = new THREE.TextGeometry(word, {
+            font: new THREE.FontLoader().parse({
+                family: "Roboto",
+                weight: "bold"
+            }),
+            size: 1,
+            height: 0.3,
+        });
 
-        const svg = d3.select("#chart-container")
-            .append("div")
-            .attr("class", "chart")
-            .append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-            .append("g")
-            .attr("transform", `translate(${margin.left},${margin.top})`);
-
-        const nestedData = d3.rollup(
-            data,
-            group => d3.sum(group, d => d.Count_median),
-            d => d["WHO_Region"]
-        );
-
-        const x = d3.scaleBand()
-            .domain([...nestedData.keys()])
-            .range([0, width])
-            .padding(0.1);
-
-        const y = d3.scaleLinear()
-            .domain([0, d3.max([...nestedData.values()])])
-            .range([height, 0]);
-
-        svg.append("g")
-            .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x));
-
-        svg.append("g").call(d3.axisLeft(y));
-
-        svg.selectAll(".bar")
-            .data([...nestedData.entries()])
-            .enter()
-            .append("rect")
-            .attr("class", "bar")
-            .attr("x", d => x(d[0]))
-            .attr("y", d => y(d[1]))
-            .attr("width", x.bandwidth())
-            .attr("height", d => height - y(d[1]));
+        const material = new THREE.MeshStandardMaterial({ color: 0xff5733 });
+        const wordMesh = new THREE.Mesh(geometry, material);
+        return wordMesh;
     }
+
+    // Animation de la scène
+    function animate() {
+        requestAnimationFrame(animate);
+        group.rotation.y += 0.01; // Rotation autour de l'axe Y
+        renderer.render(scene, camera);
+    }
+
+    // Initialisation
+    init();
+
+    // Mise à jour de la taille de la fenêtre
+    window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
 </script>
 </body>
 </html>
