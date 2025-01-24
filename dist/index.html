@@ -39,6 +39,49 @@
                 stroke: black;
                 shape-rendering: crispEdges;
             }
+
+            .card {
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                background-color: #ffffff;
+                margin-bottom: 20px;
+            }
+            textarea {
+                width: 100%;
+                height: 300px;
+                margin-bottom: 10px;
+                padding: 10px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            button {
+                padding: 10px 20px;
+                background-color: #22ff00;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 16px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+            .stop-btn {
+                background-color: #FF5733;
+            }
+            .stop-btn:hover {
+                background-color: #d43f00;
+            }
+            canvas {
+                display: block;
+                width: 100%;
+                height: 400px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
         </style>
     </head>
     <body id="page-top">
@@ -103,19 +146,7 @@
                 </div>
             </div>
         </aside>
-        <!-- App features section-->
-<!--        <section id="features">-->
 
-<!--&lt;!&ndash;            <div class="flourish-embed flourish-chart" data-src="visualisation/21284381"><script src="https://public.flourish.studio/resources/embed.js"></script><noscript><img src="https://public.flourish.studio/visualisation/21284381/thumbnail" width="100%" alt="chart visualization" /></noscript></div>&ndash;&gt;-->
-<!--            <div class="row gx-5">-->
-<!--                <div class="col-lg-6 mb-5 chart">-->
-
-<!--                    <div class="flourish-embed flourish-hierarchy" data-src="visualisation/21284841"><script src="https://public.flourish.studio/resources/embed.js"></script><noscript><img src="https://public.flourish.studio/visualisation/21284841/thumbnail" width="100%" alt="hierarchy visualization" /></noscript></div>-->
-
-<!--                </div>-->
-
-
-<!--            </div>-->
 
 <!--        </section>-->
         <section id="features">
@@ -144,43 +175,40 @@
         </section>
 
         <!-- Basic features section-->
+
+        <aside class="text-center bg-info">
+            <div class="container px-5">
+                <div class="row gx-5 justify-content-center">
+                    <div class="col-xl-8">
+                        <div class="h2 fs-1 text-white mb-4">Entrez votre texte pour créer un nuage de mots animé</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
         <section class="bg-light">
             <div class="container px-5">
                 <div class="row gx-5 align-items-center justify-content-center justify-content-lg-between">
+                    <!-- Card for entering text -->
                     <div class="col-12 col-lg-5">
-                        <h2 class="display-4 lh-1 mb-4">Enter a new age of web design</h2>
-                        <p class="lead fw-normal text-muted mb-5 mb-lg-0">This section is perfect for featuring some information about your application, why it was built, the problem it solves, or anything else! There's plenty of space for text here, so don't worry about writing too much.</p>
+                        <div class="card">
+                            <textarea id="textInput" placeholder="Écrivez quelque chose..."></textarea>
+                            <button id="submitBtn" class="w-100 btn btn-primary">Soumettre</button>
+                            <button id="stopBtn" class="w-100 btn btn-danger mt-2">Arrêter l'animation</button>
+                        </div>
                     </div>
+
+                    <!-- Card for the word cloud animation -->
                     <div class="col-sm-8 col-md-6">
-                        <div class="px-5 px-sm-0"><img class="img-fluid rounded-circle" src="https://source.unsplash.com/u8Jn2rzYIps/900x900" alt="..." /></div>
+                        <div class="card">
+                            <canvas id="myCanvas"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
         <!-- Call to action section-->
-        <section class="cta">
-            <div class="cta-content">
-                <div class="container px-5">
-                    <h2 class="text-white display-1 lh-1 mb-4">
-                        Stop waiting.
-                        <br />
-                        Start building.
-                    </h2>
-                    <a class="btn btn-outline-light py-3 px-4 rounded-pill" href="https://startbootstrap.com/theme/new-age" target="_blank">Download for free</a>
-                </div>
-            </div>
-        </section>
-        <!-- App badge section-->
-        <section class="bg-gradient-primary-to-secondary" id="download">
-            <div class="container px-5">
-                <h2 class="text-center text-white font-alt mb-4">Get the app now!</h2>
-                <div class="d-flex flex-column flex-lg-row align-items-center justify-content-center">
-                    <a class="me-lg-3 mb-4 mb-lg-0" href="#!"><img class="app-badge" src="assets/img/google-play-badge.svg" alt="..." /></a>
-                    <a href="#!"><img class="app-badge" src="assets/img/app-store-badge.svg" alt="..." /></a>
-                </div>
-            </div>
-        </section>
-        <!-- Footer-->
+<!---->
         <footer class="bg-black text-center py-5">
             <div class="container px-5">
                 <div class="text-white-50 small">
@@ -602,6 +630,105 @@
                 });
 
                 chart.render();
+            });
+        </script>
+        <script>
+            const canvas = document.getElementById('myCanvas');
+            const ctx = canvas.getContext('2d');
+            const textInput = document.getElementById('textInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            // Set canvas dimensions to match the container
+            canvas.width = 800;
+            canvas.height = 400;
+
+            // Initialize canvas background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Create a class to handle words falling inside circles
+            class Word {
+                constructor(text, x, y, speed, color, size) {
+                    this.text = text;
+                    this.x = x;
+                    this.y = y;
+                    this.speed = speed;
+                    this.color = color;
+                    this.size = size; // Size based on frequency
+                }
+
+                draw() {
+                    ctx.fillStyle = this.color;
+                    ctx.font = '16px Arial';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false); // Draw circle around the word
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff'; // Color of the text inside the circle
+                    ctx.fillText(this.text, this.x - ctx.measureText(this.text).width / 2, this.y + 5);
+                }
+
+                update() {
+                    this.y += this.speed;
+                    if (this.y > canvas.height) {
+                        this.y = -20; // Reset to top if word goes off the screen
+                    }
+                }
+            }
+
+            const words = [];
+            let animationId;
+            const wordFrequency = {}; // Object to track word frequencies
+
+            // Function to generate a random color
+            function getRandomColor() {
+                const letters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+
+            // Function to determine circle size based on word frequency
+            function getCircleSize(frequency) {
+                return Math.min(30 + frequency * 10, 80); // Max size of the circle
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+                for (let word of words) {
+                    word.update(); // Update word position
+                    word.draw();   // Draw the word on canvas
+                }
+                animationId = requestAnimationFrame(animate); // Recursively call animate
+            }
+
+            submitBtn.addEventListener('click', () => {
+                const text = textInput.value;
+                if (text.trim()) {
+                    const splitWords = text.split(' '); // Split input text into words
+                    splitWords.forEach((word) => {
+                        // Update frequency of each word
+                        wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+
+                        const x = Math.random() * (canvas.width - 100); // Random X position
+                        const y = Math.random() * -canvas.height; // Random Y position (outside the screen)
+                        const speed = Math.random() * 2 + 1; // Random speed for each word
+                        const color = getRandomColor(); // Random color for each word
+                        const size = getCircleSize(wordFrequency[word]); // Circle size based on frequency
+
+                        words.push(new Word(word, x, y, speed, color, size));
+                    });
+                    if (!animationId) animate(); // Start animation if not already running
+                    textInput.value = ''; // Clear input after submission
+                }
+            });
+
+            // Stop animation when the stop button is clicked
+            stopBtn.addEventListener('click', () => {
+                cancelAnimationFrame(animationId); // Stop animation
+                animationId = null; // Reset the animation ID
             });
         </script>
 

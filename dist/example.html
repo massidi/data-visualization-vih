@@ -3,133 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spirale de Mots</title>
+    <title>Nuage de mots animé</title>
     <style>
         body {
-            margin: 0;
-            overflow: hidden;
-            background: radial-gradient(circle, #1a2a6c, #b21f1f, #fdbb2d);
-        }
-        #overlay {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 10;
-            color: white;
             font-family: Arial, sans-serif;
+            margin: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
         }
-        textarea, button {
-            display: block;
-            margin: 10px 0;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
+        .card {
+            width: 800px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
         }
         textarea {
-            width: 300px;
-            height: 80px;
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
         }
         button {
-            background-color: #28a745;
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
             color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
             cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
-<div id="overlay">
-    <textarea id="textInput" placeholder="Entrez votre texte ici"></textarea>
-    <button onclick="createSpiral()">Créer Spirale</button>
+
+<!-- Card pour entrer le texte -->
+<div class="card">
+    <textarea id="textInput" placeholder="Écrivez quelque chose..."></textarea>
+    <button id="submitBtn">Soumettre</button>
+    <button id="stopBtn" style="background-color: #FF5733;">Arrêter l'animation</button>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- Card pour afficher l'animation -->
+<div class="card">
+    <canvas id="myCanvas"></canvas>
+</div>
+
 <script>
-    let scene, camera, renderer, group;
+    const canvas = document.getElementById('myCanvas');
+    const ctx = canvas.getContext('2d');
+    const textInput = document.getElementById('textInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const stopBtn = document.getElementById('stopBtn');
 
-    // Initialisation de la scène
-    function init() {
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.z = 40;
+    // Définir les dimensions du canvas
+    canvas.width = 800;
+    canvas.height = 400;
 
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+    // Initialiser le fond du canvas
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Ajouter une lumière
-        const light = new THREE.PointLight(0xffffff, 1, 500);
-        light.position.set(10, 10, 25);
-        scene.add(light);
-
-        group = new THREE.Group();
-        scene.add(group);
-
-        animate();
-    }
-
-    // Fonction pour créer une spirale à partir du texte
-    function createSpiral() {
-        const inputText = document.getElementById("textInput").value.trim();
-        if (!inputText) {
-            alert("Veuillez entrer du texte.");
-            return;
+    // Créer une classe pour gérer les mots qui tombent
+    class Word {
+        constructor(text, x, y, speed, color, size) {
+            this.text = text;
+            this.x = x;
+            this.y = y;
+            this.speed = speed;
+            this.color = color;
+            this.size = size; // Taille du cercle basé sur la fréquence
         }
 
-        const words = inputText.split(/\s+/);
-        const spiralRadius = 10; // Rayon de la spirale
-        const wordHeight = 1.5; // Distance verticale entre les mots
-        const totalTurns = 3; // Nombre de tours de la spirale
-
-        // Nettoyer la scène avant d'ajouter de nouveaux mots
-        while (group.children.length > 0) {
-            group.remove(group.children[0]);
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.font = '16px Arial';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false); // Dessiner un cercle autour du mot
+            ctx.fill();
+            ctx.fillStyle = '#ffffff'; // Couleur du texte à l'intérieur du cercle
+            ctx.fillText(this.text, this.x - ctx.measureText(this.text).width / 2, this.y + 5);
         }
 
-        // Ajouter les mots sur une spirale
-        words.forEach((word, index) => {
-            const angle = (index / words.length) * Math.PI * 2 * totalTurns; // Calcul de l'angle
-            const x = spiralRadius * Math.cos(angle);
-            const z = spiralRadius * Math.sin(angle);
-            const y = index * wordHeight - (words.length / 2) * wordHeight;
-
-            const wordMesh = createWord(word);
-            wordMesh.position.set(x, y, z);
-            wordMesh.rotation.y = -angle; // Orientation des mots
-            group.add(wordMesh);
-        });
+        update() {
+            this.y += this.speed;
+            if (this.y > canvas.height) {
+                this.y = -20; // Réinitialiser la position en haut si le mot dépasse le bas
+            }
+        }
     }
 
-    // Fonction pour créer un mot en 3D
-    function createWord(word) {
-        const geometry = new THREE.TextGeometry(word, {
-            font: new THREE.FontLoader().parse({
-                family: "Roboto",
-                weight: "bold"
-            }),
-            size: 1,
-            height: 0.3,
-        });
+    const words = [];
+    let animationId;
+    const wordFrequency = {}; // Objet pour stocker la fréquence des mots
 
-        const material = new THREE.MeshStandardMaterial({ color: 0xff5733 });
-        const wordMesh = new THREE.Mesh(geometry, material);
-        return wordMesh;
+    // Fonction pour générer une couleur aléatoire
+    function getRandomColor() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
     }
 
-    // Animation de la scène
+    // Fonction pour calculer la taille du cercle basé sur la fréquence
+    function getCircleSize(frequency) {
+        // Augmenter la taille du cercle avec la fréquence
+        return Math.min(30 + frequency * 10, 80); // Maximum size of the circle
+    }
+
     function animate() {
-        requestAnimationFrame(animate);
-        group.rotation.y += 0.01; // Rotation autour de l'axe Y
-        renderer.render(scene, camera);
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Effacer le canvas à chaque frame
+        for (let word of words) {
+            word.update(); // Mettre à jour la position du mot
+            word.draw();   // Dessiner le mot sur le canvas
+        }
+        animationId = requestAnimationFrame(animate); // Appeler la fonction de manière récursive
     }
 
-    // Initialisation
-    init();
+    submitBtn.addEventListener('click', () => {
+        const text = textInput.value;
+        if (text.trim()) {
+            const splitWords = text.split(' '); // Séparer le texte en mots
+            splitWords.forEach((word) => {
+                // Mettre à jour la fréquence du mot
+                wordFrequency[word] = (wordFrequency[word] || 0) + 1;
 
-    // Mise à jour de la taille de la fenêtre
-    window.addEventListener("resize", () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+                const x = Math.random() * (canvas.width - 100); // Position aléatoire en X
+                const y = Math.random() * -canvas.height; // Position aléatoire en Y (en dehors de l'écran)
+                const speed = Math.random() * 2 + 1; // Vitesse aléatoire de chaque mot
+                const color = getRandomColor(); // Couleur aléatoire pour chaque mot
+                const size = getCircleSize(wordFrequency[word]); // Taille du cercle basée sur la fréquence
+
+                words.push(new Word(word, x, y, speed, color, size));
+            });
+            if (!animationId) animate(); // Démarrer l'animation si elle n'est pas déjà lancée
+            textInput.value = ''; // Vider le champ de texte après soumission
+        }
+    });
+
+    // Ajouter un gestionnaire pour arrêter l'animation
+    stopBtn.addEventListener('click', () => {
+        cancelAnimationFrame(animationId); // Annuler l'animation
+        animationId = null; // Réinitialiser l'ID de l'animation
     });
 </script>
+
 </body>
 </html>
